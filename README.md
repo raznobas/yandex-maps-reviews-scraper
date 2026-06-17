@@ -29,7 +29,7 @@ Password: password
 
 ## Запуск через Docker
 
-Docker поднимает PHP-FPM, Nginx, MySQL, worker очереди и Node/Vite.
+Docker поднимает PHP-FPM, Nginx, MySQL и worker очереди. Node используется отдельной командой для сборки фронтенда.
 
 ```bash
 cp .env.example .env
@@ -37,14 +37,14 @@ docker compose build
 docker compose run --rm app composer install
 docker compose run --rm app php artisan key:generate
 docker compose run --rm app php artisan migrate --seed
-docker compose run --rm node npm run build
+docker compose run --rm node sh -c "rm -f public/hot && npm install && npm run build"
 docker compose up
 ```
 
 После запуска приложение будет здесь:
 
 ```text
-http://localhost:8080
+http://localhost
 ```
 
 Настройки Docker по умолчанию:
@@ -53,18 +53,31 @@ http://localhost:8080
 - `DB_DATABASE=yamap_integration`
 - `DB_USERNAME=yamap`
 - `DB_PASSWORD=yamap`
-- `APP_URL=http://localhost:8080`
+- `APP_URL=http://localhost`
 - `QUEUE_CONNECTION=database`
 
 Эти значения явно заданы в `docker-compose.yml` для контейнеров `app` и `queue`. Это сделано специально: локальный `.env` может быть настроен под PhpStorm или внешний MySQL вроде `DB_HOST=MySQL-8.0`, а внутри Docker такого хоста нет.
 
+Если разворачиваете проект на сервере, задайте в `.env` публичный адрес и порт до запуска compose:
+
+```env
+APP_URL=http://72.56.232.124
+APP_PORT=80
+```
+
+Если порт `80` занят, можно запустить локально на другом порту:
+
+```env
+APP_URL=http://localhost:8080
+APP_PORT=8080
+```
+
 Порты:
 
-- приложение: `8080`
-- Vite dev server: `5173`
+- приложение: `80` по умолчанию, либо значение `APP_PORT`
 - MySQL на хосте: `3307`, внутри Docker: `3306`
 
-Если правите фронтенд, можно держать `docker compose up node` и работать через Vite. Для обычной проверки достаточно `npm run build`: собранные assets отдаст Laravel через Nginx.
+Для обычной проверки Vite-сервер держать не нужно: собранные assets отдаст Laravel через Nginx. Если правите фронтенд в dev-режиме, запускайте Vite отдельно и следите, чтобы `public/hot` указывал на `http://localhost:5173`, а не на `0.0.0.0`.
 
 ## Ручной запуск
 
@@ -175,4 +188,3 @@ docker compose config
 - Хранил бы диагностические снимки ответов Яндекса для разбора поломок парсера.
 - Добавил бы proxy или browser fallback для случаев с anti-bot.
 - Поддержал бы несколько организаций на одного пользователя.
-
